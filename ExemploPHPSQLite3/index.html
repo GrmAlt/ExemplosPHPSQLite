@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Usuários</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .form-container {
+            margin-top: 20px;
+        }
+        input[type="text"], input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Usuários Cadastrados</h2>
+<table id="users-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<div class="form-container">
+    <h3>Cadastrar Novo Usuário</h3>
+    <form id="user-form">
+        <input type="hidden" id="user-id" name="id">
+        <label for="name">Nome:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+        <button type="submit" id="submit-btn">Salvar</button>
+        <button type="button" id="cancel-btn" style="display: none;">Cancelar</button>
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+<script>
+    function loadUsers() {
+        $.ajax({
+            url: 'readUsers.php',
+            method: 'GET',
+            success: function(data) {
+                $('#users-table tbody').html(data);
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar usuários:', error);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        loadUsers();
+
+        $('#user-form').on('submit', function(e) {
+            e.preventDefault();
+            const formData = $(this).serializeArray();
+            const action = $('#submit-btn').text() === 'Salvar' ? 'create' : 'update';
+            const userId = $('#user-id').val();
+
+            $.ajax({
+                url: `${action}.php`,
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    alert(response.message);
+                    loadUsers();
+                    resetForm();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erro ao salvar usuário:', error);
+                }
+            });
+        });
+
+        $('#cancel-btn').on('click', function() {
+            resetForm();
+        });
+
+        function resetForm() {
+            $('#user-id').val('');
+            $('#name').val('');
+            $('#email').val('');
+            $('#submit-btn').text('Salvar');
+            $('#cancel-btn').hide();
+        }
+
+        $(document).on('click', '.edit-btn', function() {
+            const userId = $(this).data('id');
+            $.ajax({
+                url: 'readUser.php',
+                method: 'GET',
+                data: { id: userId },
+                success: function(user) {
+                    $('#user-id').val(user.id);
+                    $('#name').val(user.name);
+                    $('#email').val(user.email);
+                    $('#submit-btn').text('Atualizar');
+                    $('#cancel-btn').show();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erro ao carregar usuário:', error);
+                }
+            });
+        });
+
+        $(document).on('click', '.delete-btn', function() {
+            if (confirm('Tem certeza que deseja deletar este usuário?')) {
+                const userId = $(this).data('id');
+                $.ajax({
+                    url: 'delete.php',
+                    method: 'POST',
+                    data: { id: userId },
+                    success: function(response) {
+                        alert(response.message);
+                        loadUsers();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao deletar usuário:', error);
+                    }
+                });
+            }
+        });
+    });
+    
+</script>
+
+</body>
+</html>
